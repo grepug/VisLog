@@ -3,14 +3,16 @@ import Foundation
 public class VisLogHandlerInfoProvider: @unchecked Sendable {
     public static let shared = VisLogHandlerInfoProvider()
 
-    var user: String?
-    var deviceId: String?
+    var user: () -> String? = { nil }
+    var deviceId: () -> String? = { nil }
 
-    public func setUser(_ user: String) {
-        self.user = user
+    public func setUserProvider(_ provider: @escaping () -> String?) {
+        user = provider
     }
 
-    public func setDeviceId(_ deviceId: String) {
-        self.deviceId = deviceId
+    public func setDeviceIdProvider(_ provider: @escaping () -> String?) {
+        deviceId = provider
     }
+
+    init() {}
 }

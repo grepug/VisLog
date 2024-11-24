@@ -17,9 +17,11 @@ public actor ClientLogStorage: VisLogStorage {
     private let sendInterval: TimeInterval = 3.0
 
     let url: URL
+    let accessTokenProvider: () -> String?
 
-    init(url: URL) {
+    public init(url: URL, accessTokenProvider: @escaping () -> String?) {
         self.url = url
+        self.accessTokenProvider = accessTokenProvider
 
         Task {
             await startSendTimer()
@@ -45,12 +47,14 @@ public actor ClientLogStorage: VisLogStorage {
 
     func send() async {
         guard !items.isEmpty else { return }
+        guard let token = accessTokenProvider() else { return }
 
         let encoder = JSONEncoder()
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         let itemsToSend = await dequeueItems()
         let dto = DTO(logItems: itemsToSend)
@@ -58,12 +62,13 @@ public actor ClientLogStorage: VisLogStorage {
         request.httpBody = data
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse,
                 (200...299).contains(httpResponse.statusCode)
             else {
-                print("Error: Invalid response")
+                let dataString = String(data: data, encoding: .utf8)
+                print("Error: Invalid response: " + (dataString ?? ""))
                 return
             }
         } catch {
