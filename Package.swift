@@ -5,17 +5,25 @@ import PackageDescription
 
 let package = Package(
     name: "VisLog",
+    platforms: [.iOS(.v16), .macOS(.v13)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "VisLog",
-            targets: ["VisLog"]),
+            targets: ["VisLog"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "VisLog"),
+            name: "VisLog",
+            dependencies: [
+                .product(name: "Logging", package: "swift-log")
+            ]
+        ),
         .testTarget(
             name: "VisLogTests",
             dependencies: ["VisLog"]
