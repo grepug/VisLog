@@ -34,13 +34,10 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
     public var logLevel: Logger.Level = .info
 
     public func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, source: String, file: String, function: String, line: UInt) {
-        var metadata = self.metadata
-        metadata.merge(metadata) { _, new in new }
+        var metadata = metadata ?? [:]
+        metadata.merge(self.metadata) { _, new in new }
 
-        let encodedMetadataString =
-            metadata.map { key, value in
-                "\(key): \(value)"
-            }.joined(separator: ", ")
+        let formattedMetadata = (try? JSONEncoder().encode(metadata)).map { String(data: $0, encoding: .utf8) ?? "" } ?? ""
 
         let logItem = LogItem(
             appId: appId,
@@ -50,7 +47,7 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
             label: label,
             level: level,
             message: message.description,
-            metadata: encodedMetadataString,
+            metadata: formattedMetadata,
             source: source,
             file: file,
             function: function,
@@ -68,12 +65,19 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
             \(logItem.date) \
             [\(level)] - \
             \(message) \
-            \(encodedMetadataString) \
+            \(formattedMetadata) \
             \(source) \
             file: \(file) \
             func: \(function) \
             line: \(line) 
             """
         )
+    }
+}
+
+extension Logger.MetadataValue: @retroactive Encodable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.description)
     }
 }
