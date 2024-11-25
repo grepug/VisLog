@@ -35,7 +35,7 @@ public actor ClientLogStorage: VisLogStorage {
     private func startSendTimer() {
         sendTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(sendInterval))
+                try? await Task.sleep(nanoseconds: UInt64(sendInterval * 1_000_000_000))
                 await send()
             }
         }
