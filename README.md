@@ -9,7 +9,7 @@ A powerful logging framework built on [swift-log](https://github.com/apple/swift
 - Automated log batching and remote server synchronization
 - Comprehensive metadata collection (device, app, user info)
 - Thread-safe asynchronous operations
-- iOS 16+ and macOS 13+ compatibility
+- iOS 14+ and macOS 13+ compatibility
 
 ## Quick Start
 
