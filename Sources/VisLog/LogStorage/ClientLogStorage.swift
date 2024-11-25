@@ -18,10 +18,12 @@ public actor ClientLogStorage: VisLogStorage {
 
     let url: URL
     let accessTokenProvider: () -> String?
+    let dtoEntryptionProvider: (Data) -> Data
 
-    public init(url: URL, accessTokenProvider: @escaping () -> String?) {
+    public init(url: URL, accessTokenProvider: @escaping () -> String?, dtoEntryptionProvider: @escaping (Data) -> Data = { $0 }) {
         self.url = url
         self.accessTokenProvider = accessTokenProvider
+        self.dtoEntryptionProvider = dtoEntryptionProvider
 
         Task {
             await startSendTimer()
@@ -59,7 +61,10 @@ public actor ClientLogStorage: VisLogStorage {
         let itemsToSend = await dequeueItems()
         let dto = DTO(logItems: itemsToSend)
         let data = try? encoder.encode(dto)
-        request.httpBody = data
+
+        guard let data = data else { return }
+
+        request.httpBody = dtoEntryptionProvider(data)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
