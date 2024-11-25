@@ -80,7 +80,14 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
 
 extension Logger.MetadataProvider {
     public enum CustomStringKey: String, CaseIterable {
-        case appId, deviceId, user, appVersion, appBuild, deviceName, deviceModel, osVersion
+        case user
+        case appId
+        case appVersion
+        case appBuild
+        case deviceId
+        case deviceName
+        case deviceModel
+        case osVersion
     }
 
     public static func makeProvider(withKeys keys: @escaping @Sendable () -> [CustomStringKey: String?]) -> Logger.MetadataProvider {
