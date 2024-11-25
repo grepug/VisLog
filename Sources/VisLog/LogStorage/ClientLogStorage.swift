@@ -18,12 +18,12 @@ public actor ClientLogStorage: VisLogStorage {
 
     let url: URL
     let accessTokenProvider: () -> String?
-    let dtoEntryptionProvider: (Data) -> Data
+    let sendLog: ((DTO) async throws -> Void)?
 
-    public init(url: URL, accessTokenProvider: @escaping () -> String?, dtoEntryptionProvider: @escaping (Data) -> Data = { $0 }) {
+    public init(url: URL, accessTokenProvider: @escaping () -> String?, sendLog: ((DTO) async throws -> Void)? = nil) {
         self.url = url
         self.accessTokenProvider = accessTokenProvider
-        self.dtoEntryptionProvider = dtoEntryptionProvider
+        self.sendLog = sendLog
 
         Task {
             await startSendTimer()
@@ -43,7 +43,7 @@ public actor ClientLogStorage: VisLogStorage {
         }
     }
 
-    struct DTO: Codable {
+    public struct DTO: Codable {
         let logItems: [LogItem]
     }
 
@@ -64,9 +64,14 @@ public actor ClientLogStorage: VisLogStorage {
 
         guard let data = data else { return }
 
-        request.httpBody = dtoEntryptionProvider(data)
+        request.httpBody = data
 
         do {
+            if let sendLog = sendLog {
+                try await sendLog(dto)
+                return
+            }
+
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse,
