@@ -46,7 +46,7 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
             appId: metadataProvider?.getCustomStringKey(.appId) ?? "",
             appVersion: metadataProvider?.getCustomStringKey(.appVersion) ?? "",
             appBuild: metadataProvider?.getCustomStringKey(.appBuild) ?? "",
-            date: .now,
+            date: Date(),
             label: label,
             level: level,
             message: message.description,
