@@ -1,20 +1,31 @@
 import Foundation
 
 public actor ClientLogStorage: VisLogStorage {
-    private var items: [LogItem] = []
-
-    public func append(item: LogItem) async {
-        items.append(item)
+    enum ItemState {
+        case `default`
+        case pending
     }
 
-    func dequeueItems() async -> [LogItem] {
-        let itemsToSend = items
-        items = []
+    struct ItemWrapper {
+        let item: LogItem
+        var state: ItemState
+    }
+
+    private var items: [ItemWrapper] = []
+
+    public func append(item: LogItem) async {
+        items.append(ItemWrapper(item: item, state: .default))
+    }
+
+    func dequeueItems() -> [LogItem] {
+        let itemsToSend = items.filter { $0.state == .default }.map(\.item)
+        changeDefaultsToPendings()
         return itemsToSend
     }
 
     private var sendTask: Task<Void, Never>?
     private let sendInterval: TimeInterval = 3.0
+    private var isSending = false
 
     let url: URL
     let accessTokenProvider: () -> String?
@@ -48,41 +59,74 @@ public actor ClientLogStorage: VisLogStorage {
     }
 
     func send() async {
-        guard !items.isEmpty else { return }
-        guard let token = accessTokenProvider() else { return }
+        guard !isSending else { return }
 
-        let encoder = JSONEncoder()
+        isSending = true
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let itemsToSend = dequeueItems()
 
-        let itemsToSend = await dequeueItems()
+        guard !itemsToSend.isEmpty else {
+            isSending = false
+            return
+        }
+
         let dto = DTO(logItems: itemsToSend)
-        let data = try? encoder.encode(dto)
-
-        guard let data = data else { return }
-
-        request.httpBody = data
 
         do {
             if let sendLog = sendLog {
                 try await sendLog(dto)
-                return
+            } else {
+                let encoder = JSONEncoder()
+
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                if let token = accessTokenProvider() {
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                }
+
+                request.httpBody = try? encoder.encode(dto)
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                    (200...299).contains(httpResponse.statusCode)
+                else {
+                    let dataString = String(data: data, encoding: .utf8)
+                    print("Error: Invalid response: " + (dataString ?? ""))
+
+                    changePendingsToDefaults()
+                    return
+                }
             }
 
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse,
-                (200...299).contains(httpResponse.statusCode)
-            else {
-                let dataString = String(data: data, encoding: .utf8)
-                print("Error: Invalid response: " + (dataString ?? ""))
-                return
-            }
+            items = items.filter { $0.state != .pending }
         } catch {
             print("Error sending logs: \(error)")
+
+            changePendingsToDefaults()
+        }
+
+        isSending = false
+    }
+
+    func changePendingsToDefaults() {
+        items = items.map { item in
+            var item = item
+            if item.state == .pending {
+                item.state = .default
+            }
+            return item
+        }
+    }
+
+    func changeDefaultsToPendings() {
+        items = items.map { item in
+            var item = item
+            if item.state == .default {
+                item.state = .pending
+            }
+            return item
         }
     }
 }
