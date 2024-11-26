@@ -100,7 +100,13 @@ public actor ClientLogStorage: VisLogStorage {
                 }
             }
 
-            items = items.filter { $0.state != .pending }
+            items.removeAll { item in
+                itemsToSend.contains {
+                    $0.id == item.item.id
+                }
+            }
+
+            assert(items.allSatisfy({ $0.state == .default }))
         } catch {
             print("Error sending logs: \(error)")
 

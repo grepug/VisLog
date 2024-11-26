@@ -2,6 +2,7 @@ import Foundation
 import Logging
 
 public struct LogItem: Sendable, Codable {
+    var id = UUID()
     let appId: String
     let appVersion: String
     let appBuild: String
