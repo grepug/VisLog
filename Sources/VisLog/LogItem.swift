@@ -17,4 +17,5 @@ public struct LogItem: Sendable, Codable {
     let line: UInt
     let user: String?
     let deviceId: String?
+    let category: String?
 }

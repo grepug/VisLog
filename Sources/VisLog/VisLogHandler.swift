@@ -39,6 +39,7 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.user.rawValue)
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.appVersion.rawValue)
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.appBuild.rawValue)
+        metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.category.rawValue)
 
         let formattedMetadata = (try? JSONEncoder().encode(metadata)).map { String(data: $0, encoding: .utf8) ?? "" } ?? ""
 
@@ -56,7 +57,8 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
             function: function,
             line: line,
             user: metadataProvider?.getCustomStringKey(.user),
-            deviceId: metadataProvider?.getCustomStringKey(.deviceId)
+            deviceId: metadataProvider?.getCustomStringKey(.deviceId),
+            category: metadataProvider?.getCustomStringKey(.category),
         )
 
         Task {
@@ -88,6 +90,7 @@ extension Logger.MetadataProvider {
         case deviceName
         case deviceModel
         case osVersion
+        case category
     }
 
     public static func makeProvider(withKeys keys: @escaping @Sendable () -> [CustomStringKey: String?]) -> Logger.MetadataProvider {
