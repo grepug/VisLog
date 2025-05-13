@@ -33,7 +33,9 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
 
         metadata.merge(fromProvider) { _, new in new }
         metadata.merge(self.metadata) { _, new in new }
-
+        
+        let category = metadata[Logger.MetadataProvider.CustomStringKey.category.rawValue] ?? ""
+        
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.appId.rawValue)
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.deviceId.rawValue)
         metadata.removeValue(forKey: Logger.MetadataProvider.CustomStringKey.user.rawValue)
@@ -58,7 +60,7 @@ public struct VisLogHandler<Storage>: LogHandler where Storage: VisLogStorage {
             line: line,
             user: metadataProvider?.getCustomStringKey(.user),
             deviceId: metadataProvider?.getCustomStringKey(.deviceId),
-            category: metadataProvider?.getCustomStringKey(.category),
+            category: "\(category)",
         )
 
         Task {
